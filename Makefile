@@ -1,6 +1,10 @@
 up:
-    @docker-compose up -d
+	docker-compose -f local/docker-compose.yml up -d
 
 down:
-    @docker-compose down
+	docker-compose -f local/docker-compose.yml down
+
+re:
+	$(MAKE) down
+	$(MAKE) up
 
