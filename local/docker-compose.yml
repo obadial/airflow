@@ -58,7 +58,7 @@ services:
 
   airflow-webserver:
     <<: *airflow-common
-    command: webserver
+    command: ["airflow", "webserver"]
     ports:
       - "8080:8080"
     healthcheck:
@@ -70,12 +70,11 @@ services:
     restart: always
     depends_on:
       <<: *airflow-common-depends-on
-      airflow-init:
-        condition: service_completed_successfully
+
 
   airflow-scheduler:
     <<: *airflow-common
-    command: scheduler
+    command: ["airflow", "scheduler"]
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
       interval: 30s
@@ -85,8 +84,7 @@ services:
     restart: always
     depends_on:
       <<: *airflow-common-depends-on
-      airflow-init:
-        condition: service_completed_successfully
+
 
   airflow-worker:
     <<: *airflow-common
@@ -105,12 +103,11 @@ services:
     restart: always
     depends_on:
       <<: *airflow-common-depends-on
-      airflow-init:
-        condition: service_completed_successfully
+
 
   airflow-triggerer:
     <<: *airflow-common
-    command: triggerer
+    command: ["airflow", "triggerer"]
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
       interval: 30s
@@ -120,28 +117,6 @@ services:
     restart: always
     depends_on:
       <<: *airflow-common-depends-on
-      airflow-init:
-        condition: service_completed_successfully
-
-  airflow-init:
-    <<: *airflow-common
-    entrypoint: /bin/bash
-    command:
-      - -c
-      - |
-        mkdir -p /sources/logs /sources/dags /sources/plugins
-        chown -R "${AIRFLOW_UID}:0" /sources/{logs,dags,plugins}
-        exec /entrypoint airflow version
-    environment:
-      <<: *airflow-common-env
-      _AIRFLOW_DB_MIGRATE: 'true'
-      _AIRFLOW_WWW_USER_CREATE: 'true'
-      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
-      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
-      _PIP_ADDITIONAL_REQUIREMENTS: ''
-    user: "0:0"
-    volumes:
-      - ${AIRFLOW_PROJ_DIR:-.}:/sources
 
   airflow-cli:
     <<: *airflow-common
@@ -171,9 +146,6 @@ services:
     restart: always
     depends_on:
       <<: *airflow-common-depends-on
-      airflow-init:
-        condition: service_completed_successfully
 
 volumes:
   postgres-db-volume:
-

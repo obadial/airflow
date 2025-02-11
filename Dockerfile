@@ -1,47 +1,46 @@
-FROM debian:stable-slim
+FROM python:3.9.0-slim
 
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    DEBIAN_FRONTEND=noninteractive
 
-# Installation des dépendances système, des certificats SSL et des outils de développement Kerberos
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
-    libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
-    xz-utils tk-dev libffi-dev liblzma-dev git ca-certificates \
+    build-essential libssl-dev libffi-dev \
     krb5-user libkrb5-dev \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Télécharger et installer Python 3.9.0
-RUN wget https://www.python.org/ftp/python/3.9.0/Python-3.9.0.tgz \
-    && tar -xvf Python-3.9.0.tgz \
-    && cd Python-3.9.0 \
-    && ./configure --enable-optimizations \
-    && make -j 4 \
-    && make altinstall \
-    && cd .. && rm -rf Python-3.9.0.tgz Python-3.9.0
-
-# Installer pip pour la version de Python installée
-RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py \
-    && python3.9 get-pip.py \
-    && rm get-pip.py
 
 # Installer Poetry avec pip
 RUN pip install --no-cache-dir poetry
 
+# Créer l'utilisateur airflow
+RUN useradd -m airflow
 
+# Définir le répertoire de travail
+RUN mkdir /airflow
 WORKDIR /airflow
 
+# Copier les fichiers nécessaires
+COPY --chown=airflow pyproject.toml /airflow/pyproject.toml
+COPY --chown=airflow poetry.lock /airflow/poetry.lock
+COPY --chown=airflow dags /airflow/dags
+COPY --chown=airflow local /airflow/local
+COPY --chown=airflow Makefile /airflow/Makefile
+COPY --chown=airflow logs /airflow/logs
+COPY --chown=airflow plugins /airflow/plugins
+COPY --chown=airflow config /airflow/configs
 
-COPY pyproject.toml .
-COPY poetry.lock .
-
-
+# Installer les dépendances avec Poetry
 RUN poetry config virtualenvs.create false \
-    && poetry install --no-dev
+    && poetry install
 
+# Vérifier l'installation d'Airflow
 RUN poetry run airflow version
 
+# Définir l'utilisateur par défaut
+USER airflow
 
-COPY dags ./dags/
-COPY local ./local/
-COPY Makefile .
+
+
