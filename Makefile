@@ -1,8 +1,8 @@
 up:
-	docker compose -f local/docker-compose.yml up -d --build
+	docker compose -f local/docker-compose.yaml up -d --build
 
 down:
-	docker compose -f local/docker-compose.yml down -v
+	docker compose -f local/docker-compose.yaml down -v
 
 re:
 	$(MAKE) down
